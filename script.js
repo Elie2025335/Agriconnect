@@ -4,8 +4,6 @@ import {
     getAuth, 
     signInWithEmailAndPassword, 
     createUserWithEmailAndPassword,
-    signInAnonymously,
-    signInWithCustomToken, 
     onAuthStateChanged, 
     signOut 
 } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
@@ -16,7 +14,11 @@ import {
     collection, 
     onSnapshot, 
     addDoc, 
-    serverTimestamp 
+    serverTimestamp,
+    getDoc,
+    query,
+    where,
+    updateDoc
 } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
 // Global variables for Firebase configuration provided by the Canvas environment
@@ -45,7 +47,10 @@ const showRegisterButton = document.getElementById('show-register-form');
 const showLoginButton = document.getElementById('show-login-form');
 const buyerDashboard = document.getElementById('buyer-dashboard');
 const farmerDashboard = document.getElementById('farmer-dashboard');
-const productsList = document.getElementById('products-list');
+const adminDashboard = document.getElementById('admin-dashboard');
+const productsListBuyer = document.getElementById('products-list-buyer');
+const productsListFarmer = document.getElementById('products-list-farmer'); 
+const unconfirmedUsersList = document.getElementById('unconfirmed-users-list');
 const productForm = document.getElementById('product-form');
 const suggestPriceButton = document.getElementById('suggest-price-button');
 const productPriceInput = document.getElementById('product-price');
@@ -57,6 +62,7 @@ const messageText = document.getElementById('message-text');
 const messageCloseButton = document.getElementById('message-close');
 
 let currentUserId = null;
+let currentUserRole = null;
 
 /**
  * Shows a custom, non-blocking message to the user.
@@ -85,33 +91,62 @@ showLoginButton.addEventListener('click', () => {
 // Event listener for user authentication state changes
 onAuthStateChanged(auth, async (user) => {
     if (user) {
-        // User is signed in. Update UI accordingly.
+        // User is signed in. Fetch their role and confirmation status from Firestore.
         currentUserId = user.uid;
         authStatusEl.textContent = "Status: Authenticated";
         
-        // Hide login and show main content
-        loginContainer.classList.add('hidden');
-        mainContent.classList.remove('hidden');
-        
-        // Determine user role and show appropriate dashboard
-        // This is a simple role-based logic for this example.
-        // In a real app, you would have a user profile in Firestore.
-        // For this code, a user's role is determined by their UID
-        // in a simple way to demonstrate different views.
-        if (user.uid.includes('farmer')) { // Example logic for farmer role
-            farmerDashboard.classList.remove('hidden');
-            buyerDashboard.classList.add('hidden');
-            document.getElementById('welcome-message').textContent = "Welcome, Farmer!";
-            setupProductListener(); // Farmers can still see all products
-        } else { // All other users are considered buyers
-            farmerDashboard.classList.add('hidden');
-            buyerDashboard.classList.remove('hidden');
-            document.getElementById('welcome-message').textContent = "Welcome to AgriConnect!";
-            setupProductListener();
+        try {
+            const userDocRef = doc(db, `artifacts/${appId}/users/${currentUserId}/profile/user_data`);
+            const userDocSnap = await getDoc(userDocRef);
+
+            if (userDocSnap.exists()) {
+                const userData = userDocSnap.data();
+                currentUserRole = userData.role;
+                const isConfirmed = userData.isConfirmed;
+                
+                // Check if user is confirmed before showing main content
+                if (isConfirmed) {
+                    document.getElementById('welcome-message').textContent = `Welcome, ${userData.role.charAt(0).toUpperCase() + userData.role.slice(1)}!`;
+                    // Hide login and show main content
+                    loginContainer.classList.add('hidden');
+                    mainContent.classList.remove('hidden');
+                    
+                    // Show the correct dashboard based on the fetched role
+                    if (currentUserRole === 'farmer') {
+                        farmerDashboard.classList.remove('hidden');
+                        buyerDashboard.classList.add('hidden');
+                        adminDashboard.classList.add('hidden');
+                        setupProductListener(productsListFarmer); // Farmer's marketplace view
+                    } else if (currentUserRole === 'buyer') {
+                        farmerDashboard.classList.add('hidden');
+                        buyerDashboard.classList.remove('hidden');
+                        adminDashboard.classList.add('hidden');
+                        setupProductListener(productsListBuyer); // Buyer's marketplace view
+                    } else if (currentUserRole === 'admin') {
+                        farmerDashboard.classList.add('hidden');
+                        buyerDashboard.classList.add('hidden');
+                        adminDashboard.classList.remove('hidden');
+                        setupAdminDashboardListener(); // Admin dashboard view
+                    }
+                } else {
+                    // User is not confirmed, force sign out and show message
+                    showMessage("Your account is pending confirmation. Please wait for an admin to approve your registration.");
+                    await signOut(auth);
+                }
+            } else {
+                // This case should not happen if registration is successful, but is a good fallback
+                currentUserRole = null;
+                console.error("User profile not found in Firestore.");
+            }
+        } catch (error) {
+            console.error("Error fetching user profile:", error);
+            currentUserRole = null;
+            showMessage("An error occurred. Please try logging in again.");
         }
     } else {
         // User is signed out. Show login form.
         currentUserId = null;
+        currentUserRole = null;
         authStatusEl.textContent = "Status: Not Authenticated";
         loginContainer.classList.remove('hidden');
         mainContent.classList.add('hidden');
@@ -121,25 +156,47 @@ onAuthStateChanged(auth, async (user) => {
 // Handle login form submission
 loginForm.addEventListener('submit', async (e) => {
     e.preventDefault();
-    const email = loginForm['login-email'].value;
-    const password = loginForm['login-password'].value;
+    const email = loginForm.querySelector('#login-email').value;
+    const password = loginForm.querySelector('#login-password').value;
     try {
         await signInWithEmailAndPassword(auth, email, password);
-        showMessage("Signed in successfully!");
+        // The onAuthStateChanged listener will handle the UI update
+        showMessage("Attempting to sign in...");
     } catch (error) {
         console.error("Login failed:", error);
-        showMessage("Login failed. Check your credentials.");
+        showMessage("Login failed. Check your credentials and confirmation status.");
     }
 });
 
 // Handle register form submission
 registerForm.addEventListener('submit', async (e) => {
     e.preventDefault();
-    const email = registerForm['register-email'].value;
-    const password = registerForm['register-password'].value;
+    const email = registerForm.querySelector('#register-email').value;
+    const password = registerForm.querySelector('#register-password').value;
+    const role = registerForm.querySelector('#user-role').value;
+
+    if (!role) {
+        showMessage("Please select a role (Farmer or Buyer).");
+        return;
+    }
+
     try {
-        await createUserWithEmailAndPassword(auth, email, password);
-        showMessage("Account created successfully! You are now logged in.");
+        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        const user = userCredential.user;
+
+        // Save the user's profile with their role and a confirmation flag to Firestore
+        const userDocRef = doc(db, `artifacts/${appId}/users/${user.uid}/profile/user_data`);
+        await setDoc(userDocRef, {
+            email: user.email,
+            role: role,
+            isConfirmed: false, // New users are unconfirmed by default
+            createdAt: serverTimestamp(),
+        });
+        
+        // This is where an actual email would be sent. For now, we simulate.
+        showMessage(`Account created successfully! Your account is pending confirmation by an admin. You will not be able to log in until it is approved.`);
+        // Force log out after registration to prevent unconfirmed access
+        await signOut(auth);
     } catch (error) {
         console.error("Registration failed:", error);
         showMessage("Registration failed. Please try again.");
@@ -160,8 +217,8 @@ document.getElementById('logout-button').addEventListener('click', async () => {
 // Handle product listing form submission (Farmer feature)
 productForm.addEventListener('submit', async (e) => {
     e.preventDefault();
-    if (!currentUserId) {
-        showMessage("Please sign in to list a product.");
+    if (!currentUserId || currentUserRole !== 'farmer') {
+        showMessage("You must be a signed-in farmer to list a product.");
         return;
     }
 
@@ -275,14 +332,15 @@ logisticsForm.addEventListener('submit', (e) => {
     }
 });
 
-
-// Set up the real-time listener for products in the Firestore database
-const setupProductListener = () => {
+/**
+ * Sets up the real-time listener for products in the Firestore database.
+ * @param {HTMLElement} productsListElement The DOM element to render products into.
+ */
+const setupProductListener = (productsListElement) => {
     const productsCollectionRef = collection(db, `artifacts/${appId}/public/data/products`);
     
-    // Listen for real-time updates to the products collection
     onSnapshot(productsCollectionRef, (snapshot) => {
-        productsList.innerHTML = ''; // Clear the current list
+        productsListElement.innerHTML = '';
         snapshot.forEach((doc) => {
             const product = doc.data();
             const productItem = document.createElement('div');
@@ -294,12 +352,60 @@ const setupProductListener = () => {
                 <p class="text-sm text-gray-400">Listed by: ${product.ownerId.slice(0, 8)}...${product.ownerId.slice(-8)}</p>
                 <button class="buy-button mt-4 bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors">Buy</button>
             `;
-            productsList.appendChild(productItem);
+            productsListElement.appendChild(productItem);
 
-            // Add a simple "Buy" button listener (for demonstration)
             productItem.querySelector('.buy-button').addEventListener('click', () => {
                 showMessage(`You've simulated buying "${product.name}". This feature would typically lead to a checkout process.`);
                 console.log(`User ${currentUserId} wants to buy ${product.name}`);
+            });
+        });
+    });
+};
+
+/**
+ * Sets up the real-time listener for unconfirmed users for the admin dashboard.
+ */
+const setupAdminDashboardListener = () => {
+    const usersCollectionRef = collection(db, `artifacts/${appId}/users`);
+    const q = query(usersCollectionRef, where("profile.user_data.isConfirmed", "==", false));
+
+    onSnapshot(q, (snapshot) => {
+        unconfirmedUsersList.innerHTML = '';
+        if (snapshot.empty) {
+            unconfirmedUsersList.innerHTML = `<tr><td colspan="3" class="p-4 text-center text-gray-500">No unconfirmed users found.</td></tr>`;
+            return;
+        }
+
+        snapshot.forEach((docSnapshot) => {
+            const userData = docSnapshot.data().profile.user_data;
+            const userEmail = userData.email;
+            const userRole = userData.role;
+            const userId = docSnapshot.id;
+
+            const tableRow = document.createElement('tr');
+            tableRow.classList.add('hover:bg-gray-50');
+            tableRow.innerHTML = `
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${userEmail}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${userRole}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                    <button data-id="${userId}" class="confirm-button text-green-600 hover:text-green-900 transition-colors">Confirm</button>
+                </td>
+            `;
+            unconfirmedUsersList.appendChild(tableRow);
+        });
+
+        // Add event listeners for the new "Confirm" buttons
+        document.querySelectorAll('.confirm-button').forEach(button => {
+            button.addEventListener('click', async (e) => {
+                const targetId = e.target.dataset.id;
+                try {
+                    const userDocRef = doc(db, `artifacts/${appId}/users/${targetId}/profile/user_data`);
+                    await updateDoc(userDocRef, { isConfirmed: true });
+                    showMessage(`User with ID ${targetId} has been confirmed!`);
+                } catch (error) {
+                    console.error("Error confirming user:", error);
+                    showMessage("Failed to confirm user. Please try again.");
+                }
             });
         });
     });
