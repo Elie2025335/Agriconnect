@@ -69,3 +69,157 @@
   </script>
 </body>
 </html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Marketplace | AgriConnect</title>
+  <link rel="icon" href="assets/logo.png" type="image/png" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <nav>
+    <img src="assets/logo.png" alt="AgriConnect Logo" class="logo"/>
+    <ul>
+      <li><a href="marketplace.html" class="active">Marketplace</a></li>
+      <li><a href="profile.html" id="nav-profile" style="display:none;">Profile</a></li>
+      <li><a href="admin.html" id="nav-admin" style="display:none;">Admin</a></li>
+      <li><a href="index.html" id="nav-login">Login</a></li>
+      <li><a href="#" id="nav-logout" style="display:none;">Logout</a></li>
+    </ul>
+  </nav>
+  <main>
+    <section class="section">
+      <h2>Marketplace</h2>
+      <form id="product-form" style="display:none;">
+        <input type="text" id="prod-name" placeholder="Product Name" required />
+        <textarea id="prod-desc" placeholder="Description" required></textarea>
+        <input type="number" id="prod-price" placeholder="Price (RWF)" required />
+        <input type="file" id="prod-img" accept="image/*" />
+        <button type="submit">Post Produce for Sale</button>
+      </form>
+      <div id="product-list" class="product-list"></div>
+      <div class="chat-box">
+        <h3>Community Chat</h3>
+        <div id="chat-messages" class="chat-messages"></div>
+        <form id="chat-form">
+          <input type="text" id="chat-input" placeholder="Type a message..." required />
+          <button type="submit">Send</button>
+        </form>
+      </div>
+    </section>
+  </main>
+  <footer>
+    <img src="assets/logo.png" alt="AgriConnect Logo" class="footer-logo"/>
+    <div>© <span id="year"></span> AgriConnect. All rights reserved.</div>
+    <div class="footer-desc">Empowering Rwandan farmers and communities.</div>
+  </footer>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-storage-compat.js"></script>
+  <script src="firebase-config.js"></script>
+  <script src="script.js"></script>
+  <script>
+    document.getElementById('year').innerText = new Date().getFullYear();
+  </script>
+</body>
+</html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Profile | AgriConnect</title>
+  <link rel="icon" href="assets/logo.png" type="image/png" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <nav>
+    <img src="assets/logo.png" alt="AgriConnect Logo" class="logo"/>
+    <ul>
+      <li><a href="marketplace.html">Marketplace</a></li>
+      <li><a href="profile.html" class="active">Profile</a></li>
+      <li><a href="admin.html" id="nav-admin" style="display:none;">Admin</a></li>
+      <li><a href="index.html" id="nav-login">Login</a></li>
+      <li><a href="#" id="nav-logout" style="display:none;">Logout</a></li>
+    </ul>
+  </nav>
+  <main>
+    <section class="section">
+      <h2>Profile</h2>
+      <div id="profile-info"></div>
+      <form id="loan-form" style="display:none;">
+        <h3>Request Micro-Loan</h3>
+        <input type="number" id="loan-amount" placeholder="Amount (RWF)" required />
+        <textarea id="loan-purpose" placeholder="Purpose" required></textarea>
+        <button type="submit">Request Loan</button>
+      </form>
+      <form id="logistics-form" style="display:none;">
+        <h3>Request Logistics Service</h3>
+        <textarea id="logistics-details" placeholder="Describe your delivery needs" required></textarea>
+        <button type="submit">Request Logistics</button>
+      </form>
+    </section>
+  </main>
+  <footer>
+    <img src="assets/logo.png" alt="AgriConnect Logo" class="footer-logo"/>
+    <div>© <span id="year"></span> AgriConnect. All rights reserved.</div>
+    <div class="footer-desc">Empowering Rwandan farmers and communities.</div>
+  </footer>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-storage-compat.js"></script>
+  <script src="firebase-config.js"></script>
+  <script src="script.js"></script>
+  <script>
+    document.getElementById('year').innerText = new Date().getFullYear();
+  </script>
+</body>
+</html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Admin | AgriConnect</title>
+  <link rel="icon" href="assets/logo.png" type="image/png" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <nav>
+    <img src="assets/logo.png" alt="AgriConnect Logo" class="logo"/>
+    <ul>
+      <li><a href="marketplace.html">Marketplace</a></li>
+      <li><a href="profile.html" id="nav-profile" style="display:none;">Profile</a></li>
+      <li><a href="admin.html" class="active">Admin</a></li>
+      <li><a href="index.html" id="nav-login">Login</a></li>
+      <li><a href="#" id="nav-logout" style="display:none;">Logout</a></li>
+    </ul>
+  </nav>
+  <main>
+    <section class="section">
+      <h2>Admin Dashboard</h2>
+      <div id="admin-users"></div>
+      <div id="admin-loans"></div>
+      <div id="admin-logistics"></div>
+    </section>
+  </main>
+  <footer>
+    <img src="assets/logo.png" alt="AgriConnect Logo" class="footer-logo"/>
+    <div>© <span id="year"></span> AgriConnect. All rights reserved.</div>
+    <div class="footer-desc">Empowering Rwandan farmers and communities.</div>
+  </footer>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-storage-compat.js"></script>
+  <script src="firebase-config.js"></script>
+  <script src="script.js"></script>
+  <script>
+    document.getElementById('year').innerText = new Date().getFullYear();
+  </script>
+</body>
+</html>
