@@ -1178,4 +1178,67 @@ export default function StripeCheckoutButton({ amount }) {
       Pay with Card (Stripe)
     </button>
   );
+  import i18n from "i18next";
+import { initReactI18next } from "react-i18next";
+import en from "./locales/en/translation.json";
+import rw from "./locales/rw/translation.json";
+
+i18n
+  .use(initReactI18next)
+  .init({
+    resources: {
+      en: { translation: en },
+      rw: { translation: rw }
+    },
+    lng: "en", // Default language
+    fallbackLng: "en",
+    interpolation: { escapeValue: false }
+  });
+export default i18n;import React from "react";
+import ReactDOM from "react-dom";
+import "./index.css";
+import App from "./App";
+import "./i18n"; // Import language setup
+
+ReactDOM.render(
+  <React.StrictMode>
+    <App />
+  </React.StrictMode>,
+  document.getElementById("root")
+);
+import { useTranslation } from "react-i18next";
+
+export default function Header() {
+  const { t } = useTranslation();
+
+  return (
+    <header className="p-4 bg-green-600 text-white flex justify-between">
+      <h1>{t("welcome")}</h1>
+      <button>{t("logout")}</button>
+    </header>
+  );
+}
+// src/components/LanguageSwitcher.js
+import { useTranslation } from "react-i18next";
+
+export default function LanguageSwitcher() {
+  const { i18n } = useTranslation();
+
+  const changeLanguage = (lng) => {
+    i18n.changeLanguage(lng);
+  };
+
+  return (
+    <div className="flex gap-2 p-2">
+      <button onClick={() => changeLanguage("en")} className="bg-gray-200 px-2 py-1 rounded">
+        EN
+      </button>
+      <button onClick={() => changeLanguage("rw")} className="bg-gray-200 px-2 py-1 rounded">
+        RW
+      </button>
+    </div>
+  );
+}
+
+
 }
