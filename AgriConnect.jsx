@@ -136,3 +136,279 @@ function AddProductForm({ onAdd }) {
 }
 
 export default AgriConnect;
+import React, { useState } from "react";
+import { auth } from "./firebase";
+import {
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+} from "firebase/auth";
+
+function Auth() {
+  const [isRegister, setIsRegister] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [role, setRole] = useState("farmer"); // or "buyer"
+  const [error, setError] = useState("");
+  const [user, setUser] = useState(null);
+
+  // Handle registration
+  const handleRegister = async (e) => {
+    e.preventDefault();
+    setError("");
+    try {
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      // Save role in user profile or your database — here, just save locally for demo
+      setUser({ email: userCredential.user.email, role });
+      alert("Registered successfully! Please login.");
+      setIsRegister(false);
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  // Handle login
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    setError("");
+    try {
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      // For demo, we don't have role saved in Firebase user, you would fetch from DB
+      // Here, assume role stored in localStorage or assign 'buyer' by default
+      const storedRole = localStorage.getItem("role") || "buyer";
+      setUser({ email: userCredential.user.email, role: storedRole });
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  // Simple logout
+  const handleLogout = () => {
+    auth.signOut();
+    setUser(null);
+  };
+
+  // After login show dashboard based on role
+  if (user) {
+    return (
+      <div>
+        <h2>Welcome, {user.email}</h2>
+        <h3>Your role: {user.role}</h3>
+        {user.role === "farmer" ? (
+          <FarmerDashboard />
+        ) : (
+          <BuyerDashboard />
+        )}
+        <button onClick={handleLogout}>Logout</button>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ maxWidth: 400, margin: "auto" }}>
+      <h2>{isRegister ? "Register" : "Login"}</h2>
+      <form onSubmit={isRegister ? handleRegister : handleLogin}>
+        <input
+          type="email"
+          placeholder="Email"
+          required
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          style={{ width: "100%", padding: 8, marginBottom: 10 }}
+        />
+        <input
+          type="password"
+          placeholder="Password"
+          required
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          style={{ width: "100%", padding: 8, marginBottom: 10 }}
+        />
+        {isRegister && (
+          <select
+            value={role}
+            onChange={(e) => setRole(e.target.value)}
+            style={{ width: "100%", padding: 8, marginBottom: 10 }}
+          >
+            <option value="farmer">Farmer</option>
+            <option value="buyer">Buyer</option>
+          </select>
+        )}
+        <button type="submit" style={{ width: "100%", padding: 10 }}>
+          {isRegister ? "Register" : "Login"}
+        </button>
+      </form>
+      <p style={{ marginTop: 10 }}>
+        {isRegister ? "Already have an account?" : "Don't have an account?"}{" "}
+        <button
+          onClick={() => setIsRegister(!isRegister)}
+          style={{ color: "blue", background: "none", border: "none", cursor: "pointer" }}
+        >
+          {isRegister ? "Login" : "Register"}
+        </button>
+      </p>
+      {error && <p style={{ color: "red" }}>{error}</p>}
+    </div>
+  );
+}
+
+// Dummy dashboards
+function FarmerDashboard() {
+  return <h3>This is Farmer Dashboard</h3>;
+}
+
+function BuyerDashboard() {
+  return <h3>This is Buyer Dashboard</h3>;
+}
+
+export default Auth;
+import React from "react";
+import Auth from "./Auth";
+
+function App() {
+  return <Auth />;
+}
+export default App; import React, { useState } from "react";
+import { auth, db } from "./firebase";
+import {
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  signOut,
+} from "firebase/auth";
+import {
+  doc,
+  setDoc,
+  getDoc,
+} from "firebase/firestore";
+
+function Auth() {
+  const [isRegister, setIsRegister] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [role, setRole] = useState("farmer"); // or "buyer"
+  const [error, setError] = useState("");
+  const [user, setUser] = useState(null);
+
+  // Register user and save role in Firestore
+  const handleRegister = async (e) => {
+    e.preventDefault();
+    setError("");
+    try {
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const uid = userCredential.user.uid;
+
+      // Save role in Firestore under users collection
+      await setDoc(doc(db, "users", uid), { role, email });
+
+      alert("Registered successfully! Please login.");
+      setIsRegister(false);
+      setEmail("");
+      setPassword("");
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  // Login user and fetch role from Firestore
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    setError("");
+    try {
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const uid = userCredential.user.uid;
+
+      // Fetch role from Firestore
+      const docRef = doc(db, "users", uid);
+      const docSnap = await getDoc(docRef);
+
+      if (docSnap.exists()) {
+        const userData = docSnap.data();
+        setUser({ email: userCredential.user.email, role: userData.role });
+      } else {
+        setError("No user data found!");
+      }
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  const handleLogout = async () => {
+    await signOut(auth);
+    setUser(null);
+  };
+
+  if (user) {
+    return (
+      <div>
+        <h2>Welcome, {user.email}</h2>
+        <h3>Your role: {user.role}</h3>
+        {user.role === "farmer" ? <FarmerDashboard /> : <BuyerDashboard />}
+        <button onClick={handleLogout}>Logout</button>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ maxWidth: 400, margin: "auto" }}>
+      <h2>{isRegister ? "Register" : "Login"}</h2>
+      <form onSubmit={isRegister ? handleRegister : handleLogin}>
+        <input
+          type="email"
+          placeholder="Email"
+          required
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          style={{ width: "100%", padding: 8, marginBottom: 10 }}
+        />
+        <input
+          type="password"
+          placeholder="Password"
+          required
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          style={{ width: "100%", padding: 8, marginBottom: 10 }}
+        />
+        {isRegister && (
+          <select
+            value={role}
+            onChange={(e) => setRole(e.target.value)}
+            style={{ width: "100%", padding: 8, marginBottom: 10 }}
+          >
+            <option value="farmer">Farmer</option>
+            <option value="buyer">Buyer</option>
+          </select>
+        )}
+        <button type="submit" style={{ width: "100%", padding: 10 }}>
+          {isRegister ? "Register" : "Login"}
+        </button>
+      </form>
+      <p style={{ marginTop: 10 }}>
+        {isRegister ? "Already have an account?" : "Don't have an account?"}{" "}
+        <button
+          onClick={() => {
+            setIsRegister(!isRegister);
+            setError("");
+          }}
+          style={{
+            color: "blue",
+            background: "none",
+            border: "none",
+            cursor: "pointer",
+          }}
+        >
+          {isRegister ? "Login" : "Register"}
+        </button>
+      </p>
+      {error && <p style={{ color: "red" }}>{error}</p>}
+    </div>
+  );
+}
+function FarmerDashboard() {
+  return <h3>This is the Farmer Dashboard.</h3>;
+}
+
+function BuyerDashboard() {
+  return <h3>This is the Buyer Dashboard.</h3>;
+}
+
+export default Auth;
+
