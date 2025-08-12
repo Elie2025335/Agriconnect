@@ -1,0 +1,28 @@
+{
+  "welcome": "Welcome to AgriConnect",
+  "buy_now": "Buy Now",
+  "sell_now": "Sell Now",
+  "search_placeholder": "Search for produce...",
+  "logout": "Logout",
+  "login": "Login",
+  "register": "Register",
+  "price": "Price",
+  "quantity": "Quantity",
+  "delivery": "Delivery",
+  "chat": "Chat",
+  "profile": "Profile"
+}
+{
+  "welcome": "Murakaza neza kuri AgriConnect",
+  "buy_now": "Gura Ubu",
+  "sell_now": "Gurisha Ubu",
+  "search_placeholder": "Shakisha imbuto...",
+  "logout": "Sohoka",
+  "login": "Injira",
+  "register": "Iyandikishe",
+  "price": "Igiciro",
+  "quantity": "Ingano",
+  "delivery": "Kohereza",
+  "chat": "Ikiganiro",
+  "profile": "Umwirondoro"
+}
